@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace GRASP
+namespace No_GRASP
 {
     class Goods
     {

@@ -12,12 +12,16 @@ namespace GRASP
             me.creditCards = new List<Card> () { new Card("123", 50000, "VISA"), new Card("345", 100, "MASTERCARD")};
             Bill bill = new Bill ();
             bill.client = me;
+            bill.vendors = new List<iPaymentVendor>(){new Visa(), new Mastercard()};
             bill.addItem(catalog[0], 2);
             bill.addItem(catalog[2], 3);
             bill.addItem(catalog[1], 1);
             bill.addItem(catalog[2], 5);
+
+            bill.printGoogsList();
             
             ClientController controller = new ClientController(me, bill);
+           // controller.addCreditCardDialog();
             controller.makePayment();
             Console.ReadLine();
         }

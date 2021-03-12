@@ -6,8 +6,8 @@ namespace GRASP
 
     class ClientController{
         private Client client;
-        private Bill bill;
-        public ClientController(Client client, Bill bill){
+        private IBill bill;
+        public ClientController(Client client, IBill bill){
             this.client = client;
             this.bill = bill;
         }
@@ -24,6 +24,18 @@ namespace GRASP
 
         public void startNewBill(){
             this.bill = new Bill();
+        }
+
+        public void addCreditCardDialog(){
+            Console.Write("Enter card number:");
+            string number = Console.ReadLine();
+            Console.Write("Enter balance:");
+            double balance =  double.Parse(Console.ReadLine());
+            Console.WriteLine("Select vendor: \n 1 Visa \n 2 Mastercard");
+            string [] vendorsList = new string[2] {"VISA", "MASTERCARD"};
+            int vendorIndex = int.Parse(Console.ReadLine());
+            string vendor = vendorsList[vendorIndex-1];
+            client.addCreditCard(new Card(number, balance, vendor));
         }
     }
     class Goods
@@ -62,32 +74,55 @@ namespace GRASP
         public void incAmount(int value){
             this.amount += value;
         }
+
+        public override string ToString(){
+            return $"{this.goods.name} - {this.amount}";
+        }
     }
 
-    class Bill
+
+    interface IBill{
+        void Pay(IPaymentSource paymentSource);
+        void addItem(Goods goods, int amount);
+    }
+
+    interface IPaymentSource{
+        bool checkEnaughtBalance(double sum);
+    }
+    class Bill: IBill
     {
         private List<Item> items = new List<Item>();
         public Client client;
 
-        public void Pay(Card card)
-        {
-            //рахує загальну вартість
+        public List<iPaymentVendor> vendors ;
+
+        public double calculateTotalCost(){
             double totalCost = 0;
             foreach (var item in this.items)
             {
                 totalCost += item.getTotalPrice();
             }
+            return totalCost;
+        }
+        public void Pay(IPaymentSource paymentSource)
+        {
+            
+            //рахує загальну вартість
+          
+            double totalCost = this.calculateTotalCost();
+            
+            var vendor = this.vendors.Find(v => v.Check(paymentSource));
+            if (vendor != null && vendor.MakePayment(totalCost, paymentSource)){
+                Console.WriteLine("Succsess!");
+            }
+            else
+                Console.WriteLine("Failure");
+        }
 
-            if (card.vendor == "VISA")
-                if (Visa.MakePayment(totalCost, card))
-                    Console.WriteLine("Succsess!");
-                else
-                    Console.WriteLine("Failure");
-            else if (card.vendor == "MASTERCARD")
-                if (Mastercard.MakePayment(totalCost, card))
-                    Console.WriteLine("Succsess!");
-                else
-                    Console.WriteLine("Failure");
+        public void printGoogsList(){
+             foreach (var item in this.items){
+                 Console.WriteLine(item.ToString());
+             }
         }
 
         public void addItem(Goods goods, int amount){
@@ -110,9 +145,13 @@ namespace GRASP
             else
                 throw new Exception("Out of range");
         }
+
+        public void addCreditCard (Card card){
+            this.creditCards.Add(card);
+        }
     }
 
-    class Card
+    class Card: IPaymentSource
     {
         public string number { get; set; }
         public double balance { get; set; }
@@ -131,21 +170,39 @@ namespace GRASP
         }
     }
 
-    class Visa
+    interface iPaymentVendor{
+        public bool MakePayment(double sum, IPaymentSource paymentSource);
+        public string getName();
+
+        public bool Check(IPaymentSource paymentSource){
+            return ((paymentSource as Card).vendor == this.getName());
+        }
+    }
+    class Visa: iPaymentVendor
     {
-        static public bool MakePayment(double sum, Card card)
+        public string name = "VISA";
+        public bool MakePayment(double sum, IPaymentSource paymentSource)
         {
             Console.WriteLine($"Processing payment by Visa for {sum}");
-            return card.checkEnaughtBalance(sum);
+            return paymentSource.checkEnaughtBalance(sum);
+        }
+
+        public string getName(){
+            return this.name;
         }
     }
 
-    class Mastercard
+    class Mastercard: iPaymentVendor
     {
-        static public bool MakePayment(double sum, Card card)
+        public string name = "MASTERCARD";
+        public bool MakePayment(double sum, IPaymentSource paymentSource)
         {
             Console.WriteLine($"Processing payment by Mastrcard for {sum}");
-            return card.checkEnaughtBalance(sum);
+            return paymentSource.checkEnaughtBalance(sum);
+        }
+
+         public string getName(){
+            return this.name;
         }
 
     }
